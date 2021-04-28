@@ -158,7 +158,9 @@ describe('WebpackConfig object', () => {
         it('Prefix when using devServer', () => {
             const config = createConfig();
             config.runtimeConfig.useDevServer = true;
-            config.runtimeConfig.devServerUrl = 'http://localhost:8080/';
+            config.runtimeConfig.devServerHost = 'localhost';
+            config.runtimeConfig.devServerPort = 8080;
+            config.runtimeConfig.devServerFinalIsHttps = false;
             config.setPublicPath('/public');
 
             expect(config.getRealPublicPath()).to.equal('http://localhost:8080/public/');
@@ -167,7 +169,9 @@ describe('WebpackConfig object', () => {
         it('No prefix with devServer & devServerKeepPublicPath option', () => {
             const config = createConfig();
             config.runtimeConfig.useDevServer = true;
-            config.runtimeConfig.devServerUrl = 'http://localhost:8080/';
+            config.runtimeConfig.devServerHost = 'localhost';
+            config.runtimeConfig.devServerPort = 8080;
+            config.runtimeConfig.devServerFinalIsHttps = false;
             config.runtimeConfig.devServerKeepPublicPath = true;
             config.setPublicPath('/public');
 
@@ -177,7 +181,9 @@ describe('WebpackConfig object', () => {
         it('devServer does not prefix if publicPath is absolute', () => {
             const config = createConfig();
             config.runtimeConfig.useDevServer = true;
-            config.runtimeConfig.devServerUrl = 'http://localhost:8080/';
+            config.runtimeConfig.devServerHost = 'localhost';
+            config.runtimeConfig.devServerPort = 8080;
+            config.runtimeConfig.devServerFinalIsHttps = false;
             config.setPublicPath('http://coolcdn.com/public');
             config.setManifestKeyPrefix('/public/');
 
@@ -322,21 +328,21 @@ describe('WebpackConfig object', () => {
         });
     });
 
-    describe('configureOptimizeCssPlugin', () => {
+    describe('configureCssMinimizerPlugin', () => {
         it('Setting callback', () => {
             const config = createConfig();
             const callback = () => {};
-            config.configureOptimizeCssPlugin(callback);
+            config.configureCssMinimizerPlugin(callback);
 
-            expect(config.optimizeCssPluginOptionsCallback).to.equal(callback);
+            expect(config.cssMinimizerPluginOptionsCallback).to.equal(callback);
         });
 
         it('Setting invalid callback argument', () => {
             const config = createConfig();
 
             expect(() => {
-                config.configureOptimizeCssPlugin('foo');
-            }).to.throw('Argument 1 to configureOptimizeCssPlugin() must be a callback function');
+                config.configureCssMinimizerPlugin('foo');
+            }).to.throw('Argument 1 to configureCssMinimizerPlugin() must be a callback function');
         });
     });
 
@@ -377,26 +383,6 @@ describe('WebpackConfig object', () => {
             expect(() => {
                 config.addStyleEntry('main', './main.js');
             }).to.throw('conflicts with a name passed to addEntry');
-        });
-    });
-
-    describe('createSharedEntry', () => {
-        it('Calling twice throws an error', () => {
-            const config = createConfig();
-            config.createSharedEntry('vendor', 'jquery');
-
-            expect(() => {
-                config.createSharedEntry('vendor2', './main');
-            }).to.throw('cannot be called multiple');
-        });
-
-        it('Calling with splitEntryChunks() is not supported', () => {
-            const config = createConfig();
-            config.splitEntryChunks();
-
-            expect(() => {
-                config.createSharedEntry('vendor', './main');
-            }).to.throw('together is not supported');
         });
     });
 
@@ -619,7 +605,7 @@ describe('WebpackConfig object', () => {
 
         it('Calling with "includeNodeModules" option', () => {
             const config = createConfig();
-            config.configureBabel(() => {}, { include_node_modules: ['foo', 'bar'] });
+            config.configureBabel(() => {}, { includeNodeModules: ['foo', 'bar'] });
 
             expect(config.babelOptions.exclude).to.be.a('Function');
 
@@ -768,6 +754,40 @@ describe('WebpackConfig object', () => {
         });
     });
 
+    describe('configureMiniCssExtractPlugin', () => {
+        it('Calling method with its first parameter sets the loader\'s options', () => {
+            const config = createConfig();
+            const testCallback = () => {};
+            config.configureMiniCssExtractPlugin(testCallback);
+            expect(config.miniCssExtractLoaderConfigurationCallback).to.equal(testCallback);
+        });
+
+        it('Calling method with its second parameter sets the plugin\'s options', () => {
+            const config = createConfig();
+            const testCallbackLoader = () => {};
+            const testCallbackPlugin = () => {};
+            config.configureMiniCssExtractPlugin(testCallbackLoader, testCallbackPlugin);
+            expect(config.miniCssExtractLoaderConfigurationCallback).to.equal(testCallbackLoader);
+            expect(config.miniCssExtractPluginConfigurationCallback).to.equal(testCallbackPlugin);
+        });
+
+        it('Calling with non-callback as 1st parameter throws an error', () => {
+            const config = createConfig();
+
+            expect(() => {
+                config.configureMiniCssExtractPlugin('FOO');
+            }).to.throw('must be a callback function');
+        });
+
+        it('Calling with non-callback as 2nd parameter throws an error', () => {
+            const config = createConfig();
+
+            expect(() => {
+                config.configureMiniCssExtractPlugin(() => {}, 'FOO');
+            }).to.throw('must be a callback function');
+        });
+    });
+
     describe('configureSplitChunks', () => {
         it('Calling method sets it', () => {
             const config = createConfig();
@@ -782,15 +802,6 @@ describe('WebpackConfig object', () => {
             expect(() => {
                 config.configureSplitChunks('FOO');
             }).to.throw('must be a callback function');
-        });
-
-        it('Calling with createdSharedEntry() is not supported', () => {
-            const config = createConfig();
-            config.createSharedEntry('vendor', './main');
-
-            expect(() => {
-                config.splitEntryChunks();
-            }).to.throw('together is not supported');
         });
     });
 
@@ -897,6 +908,40 @@ describe('WebpackConfig object', () => {
 
             expect(() => {
                 config.enableStylusLoader('FOO');
+            }).to.throw('must be a callback function');
+        });
+    });
+
+    describe('enableBuildCache', () => {
+        it('Calling method enables it', () => {
+            const config = createConfig();
+            config.enableBuildCache({ config: ['foo.js'] });
+
+            expect(config.usePersistentCache).to.be.true;
+            expect(config.persistentCacheBuildDependencies).to.eql({ config: ['foo.js'] });
+        });
+
+        it('Calling with callback', () => {
+            const config = createConfig();
+            const callback = (cache) => {};
+            config.enableBuildCache({ config: ['foo.js'] }, callback);
+
+            expect(config.persistentCacheCallback).to.equal(callback);
+        });
+
+        it('Calling without config key throws an error', () => {
+            const config = createConfig();
+
+            expect(() => {
+                config.enableBuildCache({});
+            }).to.throw('should contain an object with at least a "config" key');
+        });
+
+        it('Calling with non-callback throws an error', () => {
+            const config = createConfig();
+
+            expect(() => {
+                config.enableBuildCache({ config: ['foo.js'] }, 'FOO');
             }).to.throw('must be a callback function');
         });
     });
@@ -1127,7 +1172,10 @@ describe('WebpackConfig object', () => {
 
             expect(nbOfPlugins).to.equal(0);
 
-            config.addPlugin(new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/));
+            config.addPlugin(new webpack.IgnorePlugin({
+                resourceRegExp: /^\.\/locale$/,
+                contextRegExp: /moment$/
+            }));
 
             expect(config.plugins.length).to.equal(1);
             expect(config.plugins[0].plugin).to.be.instanceof(webpack.IgnorePlugin);
@@ -1140,7 +1188,10 @@ describe('WebpackConfig object', () => {
 
             expect(nbOfPlugins).to.equal(0);
 
-            config.addPlugin(new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), 10);
+            config.addPlugin(new webpack.IgnorePlugin({
+                resourceRegExp: /^\.\/locale$/,
+                contextRegExp: /moment$/
+            }), 10);
 
             expect(config.plugins.length).to.equal(1);
             expect(config.plugins[0].plugin).to.be.instanceof(webpack.IgnorePlugin);
@@ -1154,7 +1205,10 @@ describe('WebpackConfig object', () => {
             expect(nbOfPlugins).to.equal(0);
 
             expect(() => {
-                config.addPlugin(new webpack.IgnorePlugin(/^\.\/locale$/, /moment$/), 'foo');
+                config.addPlugin(new webpack.IgnorePlugin({
+                    resourceRegExp: /^\.\/locale$/,
+                    contextRegExp: /moment$/
+                }), 'foo');
             }).to.throw('must be a number');
         });
     });
@@ -1212,24 +1266,6 @@ describe('WebpackConfig object', () => {
         });
     });
 
-    describe('disableImagesLoader', () => {
-        it('Disable default images loader', () => {
-            const config = createConfig();
-            config.disableImagesLoader();
-
-            expect(config.useImagesLoader).to.be.false;
-        });
-    });
-
-    describe('disableFontsLoader', () => {
-        it('Disable default fonts loader', () => {
-            const config = createConfig();
-            config.disableFontsLoader();
-
-            expect(config.useFontsLoader).to.be.false;
-        });
-    });
-
     describe('disableCssExtraction', () => {
         it('By default the CSS extraction is enabled', () => {
             const config = createConfig();
@@ -1237,12 +1273,27 @@ describe('WebpackConfig object', () => {
             expect(config.extractCss).to.be.true;
         });
 
-        it('Calling it disables the CSS extraction', () => {
+        it('Calling it with no params disables the CSS extraction', () => {
             const config = createConfig();
             config.disableCssExtraction();
 
             expect(config.extractCss).to.be.false;
         });
+
+        it('Calling it with boolean set to true disables CSS extraction', () => {
+            const config = createConfig();
+            config.disableCssExtraction(true);
+
+            expect(config.extractCss).to.be.false;
+        });
+
+        it('Calling it with boolean set to false enables CSS extraction', () => {
+            const config = createConfig();
+            config.disableCssExtraction(false);
+
+            expect(config.extractCss).to.be.true;
+        });
+
     });
 
     describe('configureFilenames', () => {
@@ -1251,15 +1302,13 @@ describe('WebpackConfig object', () => {
             config.configureFilenames({
                 js: '[name].[contenthash].js',
                 css: '[name].[contenthash].css',
-                images: 'images/[name].[hash:8].[ext]',
-                fonts: 'fonts/[name].[hash:8].[ext]'
+                assets: 'assets/[name].[hash:8][ext]',
             });
 
             expect(config.configuredFilenames).to.deep.equals({
                 js: '[name].[contenthash].js',
                 css: '[name].[contenthash].css',
-                images: 'images/[name].[hash:8].[ext]',
-                fonts: 'fonts/[name].[hash:8].[ext]'
+                assets: 'assets/[name].[hash:8][ext]',
             });
         });
 
@@ -1282,36 +1331,79 @@ describe('WebpackConfig object', () => {
         });
     });
 
-    describe('configureUrlLoader', () => {
-        it('Calling method sets it', () => {
+    describe('configureImageRule', () => {
+        it('Calling method sets options and callback', () => {
             const config = createConfig();
-            config.configureUrlLoader({
-                images: { limit: 8192 },
-                fonts: { limit: 4096 }
-            });
+            const callback = () => {};
+            config.configureImageRule({
+                type: 'asset',
+                maxSize: 1024,
+            }, callback);
 
-            expect(config.urlLoaderOptions).to.deep.equals({
-                images: { limit: 8192 },
-                fonts: { limit: 4096 }
-            });
+            expect(config.imageRuleOptions.maxSize).to.equals(1024);
+            expect(config.imageRuleCallback).to.equals(callback);
         });
 
-        it('Calling with non-object throws an error', () => {
+        it('Calling with invalid option throws error', () => {
             const config = createConfig();
 
             expect(() => {
-                config.configureUrlLoader('FOO');
-            }).to.throw('must be an object');
+                config.configureImageRule({ fake: true });
+            }).to.throw('Invalid option "fake" passed');
         });
 
-        it('Calling with an unknown key throws an error', () => {
+        it('Setting maxSize for type of not asset throws error', () => {
             const config = createConfig();
 
             expect(() => {
-                config.configureUrlLoader({
-                    foo: 'bar'
-                });
-            }).to.throw('"foo" is not a valid key');
+                config.configureImageRule({ type: 'asset/resource', maxSize: 1024 });
+            }).to.throw('this option is only valid when "type" is set to "asset"');
+        });
+
+        it('Passing non callback to 2nd arg throws error', () => {
+            const config = createConfig();
+
+            expect(() => {
+                config.configureImageRule({}, {});
+            }).to.throw('Argument 2 to configureImageRule() must be a callback');
+        });
+    });
+
+    describe('configureFontRule', () => {
+        it('Calling method sets options and callback', () => {
+            const config = createConfig();
+            const callback = () => {};
+            config.configureFontRule({
+                type: 'asset',
+                maxSize: 1024,
+            }, callback);
+
+            expect(config.fontRuleOptions.maxSize).to.equals(1024);
+            expect(config.fontRuleCallback).to.equals(callback);
+        });
+
+        it('Calling with invalid option throws error', () => {
+            const config = createConfig();
+
+            expect(() => {
+                config.configureFontRule({ fake: true });
+            }).to.throw('Invalid option "fake" passed');
+        });
+
+        it('Setting maxSize for type of not asset throws error', () => {
+            const config = createConfig();
+
+            expect(() => {
+                config.configureFontRule({ type: 'asset/resource', maxSize: 1024 });
+            }).to.throw('this option is only valid when "type" is set to "asset"');
+        });
+
+        it('Passing non callback to 2nd arg throws error', () => {
+            const config = createConfig();
+
+            expect(() => {
+                config.configureFontRule({}, {});
+            }).to.throw('Argument 2 to configureFontRule() must be a callback');
         });
     });
 

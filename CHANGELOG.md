@@ -1,5 +1,124 @@
 # CHANGELOG
 
+## 1.0.0
+
+ * [DEPENDENCY UPGRADE] Webpack was upgraded from version 4 to 5.
+
+ * [DEPENDENCY UPGRADES] The following packages had major version upgrades:
+   * `css-loader` from 3 to 5
+   * `assets-webpack-plugin` from 5 to 7
+   * `mini-css-extract-plugin` from 0.4 to 1
+   * `style-loader` from 1 to 2
+   * `terser-webpack-plugin` from 1 to 5
+   * `webpack-cli` from 3 to 4
+   * `webpack-manifest-plugin` from 2 to 3
+   * `webpack-dev-server` from 3 to 4-beta [CHANGELOG](https://github.com/webpack/webpack-dev-server/blob/master/CHANGELOG.md#400-beta0-2020-11-27)
+
+ * [DEPENDENCY SUPPORT CHANGES] Encore has changed what versions it supports
+   of the following packages:
+   * `less` from 3 to 4 and `less-loader` from 6 to 7
+   * `fork-ts-checker-webpack-plugin` from 4 to 5 or 6
+
+ * [BC BREAK] Image and font processing was changed from using `file-loader`
+   (and  optionally `url-loader` via `configureUrlLoader()`) to Webpack 5's
+   new [Asset Modules](https://webpack.js.org/guides/asset-modules/).
+   In practice, unless you have a highly-configured system, this should
+   not cause significant changes.
+
+ * [BC BREAK] The `configureUrlLoader()` method was removed. See
+   `configureImageRule()` and `configureFontRule()` - specifically the
+   `maxSize` option and type: 'asset'. The `url-loader` is no longer used.
+
+ * [BC BREAK] The `disableImagesLoader()` and `disableFontsLoader()` methods
+   have been removed. See `configureImageRule()` and `configureFontRule()`
+   for a new option to disable these.
+
+ * [BC BREAK] The `configureFilenames()` method no longer accepts paths
+   for `images` or `fonts`. See `configureImageRule()` and `configureFontRule()`
+   for how to configure these filenames. The `configureFilenames()` method
+   *does* now accept an `assets` option, but out-of-the-box, this will not
+   result in any filename changes. See `configureFilenames()` for more details.
+
+ * [BC BREAK] `optimize-css-assets-webpack-plugin` was replaced by
+   `css-minimizer-webpack-plugin` and the `optimizeCssPluginOptionsCallback()`
+   method was replaced by `cssMinimizerPluginOptionsCallback()`.
+
+ * [BC BREAK] The `file-loader` package is no longer required by Encore. If
+   you use `copyFiles()`, you will need to install it manually (you
+   will receive a clear error about this).
+
+ * [BC BREAK] All previously-deprecated methods & options were removed.
+
+ * [BEHAVIOR CHANGE] The `HashedModuleIdsPlugin` was previously used to
+   help name "modules" when building for production. This has been removed
+   and we now use Webpack's native `optimization.moduleIds` option, which
+   is set to `deterministic`.
+
+ * [configureMiniCssExtractPlugin()] `configureMiniCssExtractPlugin()` was
+   added to allow the `MiniCssExtractPlugin.loader` and `MiniCssExtractPlugin`
+   to be configured.
+
+ * [enableBuildCache()] Added `enableBuildCache()` to enable the new
+   Webpack 5 build caching. https://webpack.js.org/blog/2020-10-10-webpack-5-release/
+   This feature should be considered experimental.
+
+## 0.33.0
+
+ * [disableCssExtraction()] Added boolean argument to `disableCssExtraction()`
+   to make it easier to dynamically disable extraction - #756 thanks
+   to @football2801.
+
+ * [DEPENDENCY UPGRADE] Vue 3 was already supported, but the dependencies
+   have been upgraded to explicitly support the stable version, instead
+   of beta versions - #869 thanks to @weaverryan
+
+ * [DEPENDENCY UPGRADE] Explicit support for `postcss-loader` v3 was
+   dropped but support for v4 was added - #854 thanks to @railto.
+
+ * [DEPENDENCY UPGRADE] Support for `sass-loader` v10 was added - #865
+   thanks to @shmshd.
+
+ * Allowed using `copyFiles()` even if you don't have any other
+   entrypoints - #831 thanks to @pszalko.
+
+ * [DEPENDENCY UPGRADE] Support for `ts-loader` was upgraded from
+   `^5.3` to `^8.0.1`. This means that only `^8.0.1` of `ts-loader`
+   is guaranteed to work - #800 thanks to @skmedix.
+
+ * [DEPENDENCY UPGRADE] Support for `eslint` v5 was removed but support
+   for v7 was added. Also, `eslint-loader` support for v3 was removed
+   but support for v4 was added - see #774 thanks to @Kocal.
+
+## 0.32.1
+
+ * Fixing a bug where the new Stimulus Bridge always required the
+   `@symfony/stimulus-bridge/webpack-helper` module, even if you
+   were not using this feature - #863 thanks to @Kocal
+
+## 0.32.0
+
+ * [enableStimulusBridge] The new `enableStimulusBridge()` method was
+   added to enable the Stimulus bridge and Symfony UX features. See
+   https://symfony.com/ux for more details and #859 thanks to @tgalopin.
+
+## 0.31.1
+
+ * [DEPENDENCY UPGRADE] `resolve-url-loader` was updated from `^3.0.1`
+   to `^3.1.2`, which should not affect most users. See #848 thanks
+   to @Khartir.
+
+## 0.31.0
+
+ * [DEPENDENCY UPGRADE] `assets-webpack-plugin` was updated from `^3.9.7`
+   to `^5.1.1`, which should not affect most users.
+
+ * [DEPENDENCY UPGRADE] `less-loader` was updated from `^4.1.0`
+   to `^6.2.0`. This will likely not affect you unless you're passing
+   certain custom options in `enableLessLoader()`: [CHANGELOG](https://github.com/webpack-contrib/less-loader/blob/master/CHANGELOG.md)
+
+ * [DEPENDENCY UPGRADE] `sass-loader` was updated from `^8.0.0`
+   to `^9.0.1`, which has some options-related changes: [CHANGELOG](https://github.com/webpack-contrib/sass-loader/blob/master/CHANGELOG.md)
+
 ## 0.30.0
 
  * ~~[BC BREAK] The Vue "build" was changed from `vue.esm.js` (full build) to `vue.runtime.esm.js` (runtime build)~~

@@ -10,11 +10,13 @@
 'use strict';
 
 const expect = require('chai').expect;
+const sinon = require('sinon');
 const api = require('../index');
+const path = require('path');
 
 describe('Public API', () => {
     beforeEach(() => {
-        api.configureRuntimeEnvironment('dev');
+        api.configureRuntimeEnvironment('dev', {}, false);
     });
 
     describe('setOutputPath', () => {
@@ -120,15 +122,6 @@ describe('Public API', () => {
 
         it('must return the API object', () => {
             const returnedValue = api.enableSourceMaps();
-            expect(returnedValue).to.equal(api);
-        });
-
-    });
-
-    describe('createSharedEntry', () => {
-
-        it('must return the API object', () => {
-            const returnedValue = api.createSharedEntry('sharedEntry', 'vendor.js');
             expect(returnedValue).to.equal(api);
         });
 
@@ -326,24 +319,6 @@ describe('Public API', () => {
 
     });
 
-    describe('disableImagesLoader', () => {
-
-        it('must return the API object', () => {
-            const returnedValue = api.disableImagesLoader();
-            expect(returnedValue).to.equal(api);
-        });
-
-    });
-
-    describe('disableFontsLoader', () => {
-
-        it('must return the API object', () => {
-            const returnedValue = api.disableFontsLoader();
-            expect(returnedValue).to.equal(api);
-        });
-
-    });
-
     describe('disableCssExtraction', () => {
 
         it('must return the API object', () => {
@@ -362,10 +337,19 @@ describe('Public API', () => {
 
     });
 
-    describe('configureUrlLoader', () => {
+    describe('configureImageRule', () => {
 
         it('must return the API object', () => {
-            const returnedValue = api.configureUrlLoader({});
+            const returnedValue = api.configureImageRule();
+            expect(returnedValue).to.equal(api);
+        });
+
+    });
+
+    describe('configureFontRule', () => {
+
+        it('must return the API object', () => {
+            const returnedValue = api.configureFontRule();
             expect(returnedValue).to.equal(api);
         });
 
@@ -425,10 +409,38 @@ describe('Public API', () => {
 
     });
 
-    describe('configureOptimizeCssPlugin', () => {
+    describe('configureCssMinimizerPlugin', () => {
 
         it('should return the API object', () => {
-            const returnedValue = api.configureOptimizeCssPlugin(() => {});
+            const returnedValue = api.configureCssMinimizerPlugin(() => {});
+            expect(returnedValue).to.equal(api);
+        });
+
+    });
+
+    describe('enableStimulusBridge', () => {
+
+        it('should return the API object', () => {
+            const returnedValue = api.enableStimulusBridge(path.resolve(__dirname, '../', 'package.json'));
+            expect(returnedValue).to.equal(api);
+        });
+
+    });
+
+    describe('enableBuildCache', () => {
+
+        it('should return the API object', () => {
+            const returnedValue = api.enableBuildCache({ config: [__filename] });
+            expect(returnedValue).to.equal(api);
+        });
+
+    });
+
+
+    describe('configureMiniCssExtractPlugin', () => {
+
+        it('should return the API object', () => {
+            const returnedValue = api.configureMiniCssExtractPlugin(() => {});
             expect(returnedValue).to.equal(api);
         });
 
@@ -441,6 +453,21 @@ describe('Public API', () => {
             expect(returnedValue).to.equal(api);
         });
 
+    });
+
+    describe('when', () => {
+        it('should call or not callbacks depending of the conditions', () => {
+            api.configureRuntimeEnvironment('dev', {}, false);
+
+            const spy = sinon.spy();
+            api
+                .when((Encore) => Encore.isDev(), (Encore) => spy('is dev'))
+                .when((Encore) => Encore.isProduction(), (Encore) => spy('is production'))
+                .when(true, (Encore) => spy('true'));
+            expect(spy.calledWith('is dev'), 'callback for "is dev" should be called').to.be.true;
+            expect(spy.calledWith('is production'), 'callback for "is production" should NOT be called').to.be.false;
+            expect(spy.calledWith('true'), 'callback for "true" should be called').to.be.true;
+        });
     });
 
     describe('isRuntimeEnvironmentConfigured', () => {

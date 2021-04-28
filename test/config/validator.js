@@ -34,6 +34,19 @@ describe('The validator function', () => {
         }).to.throw('No entries found!');
     });
 
+    it('should accept use with copyFiles() only', () => {
+        const config = createConfig();
+        config.setOutputPath('/tmp');
+        config.setPublicPath('/tmp');
+        config.copyFiles({ from: './' });
+
+        expect(() => {
+            validator(config);
+        }).not.throw();
+
+        expect(Object.keys(config.copyFilesConfigs).length).to.equal(1);
+    });
+
     it('throws an error if there is no output path', () => {
         const config = createConfig();
         config.publicPath = '/';
@@ -83,20 +96,6 @@ describe('The validator function', () => {
         expect(logger.getMessages().warning[0]).to.include('Passing an absolute URL to setPublicPath() *and* using the dev-server can cause issues');
     });
 
-    it('warning with createSharedEntry() and core cache group name', () => {
-        const config = createConfig();
-        config.outputPath = '/tmp/public/build';
-        config.setPublicPath('/build');
-        config.createSharedEntry('vendors', './main');
-
-        logger.reset();
-        logger.quiet();
-        validator(config);
-
-        expect(logger.getMessages().warning).to.have.lengthOf(1);
-        expect(logger.getMessages().warning[0]).to.include('Passing "vendors" to createSharedEntry() is not recommended');
-    });
-
     it('warning with addCacheGroup() and core cache group name', () => {
         const config = createConfig();
         config.outputPath = '/tmp/public/build';
@@ -112,23 +111,5 @@ describe('The validator function', () => {
 
         expect(logger.getMessages().warning).to.have.lengthOf(1);
         expect(logger.getMessages().warning[0]).to.include('Passing "defaultVendors" to addCacheGroup() is not recommended');
-    });
-
-    it('warning with addCacheGroup() and a similar createSharedEntry() name', () => {
-        const config = createConfig();
-        config.outputPath = '/tmp/public/build';
-        config.setPublicPath('/build');
-        config.addEntry('main', './main');
-        config.createSharedEntry('foo', './foo.js');
-        config.addCacheGroup('foo', {
-            test: /[\\/]main/,
-        });
-
-        logger.reset();
-        logger.quiet();
-        validator(config);
-
-        expect(logger.getMessages().warning).to.have.lengthOf(1);
-        expect(logger.getMessages().warning[0]).to.include('Using the same name when calling createSharedEntry() and addCacheGroup() is not recommended.');
     });
 });

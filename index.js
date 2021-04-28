@@ -192,25 +192,22 @@ class Encore {
     }
 
     /**
-     * Allows you to configure the options passed to the optimize-css-assets-webpack-plugin.
-     * A list of available options can be found at https://github.com/NMFR/optimize-css-assets-webpack-plugin
+     * Allows you to configure the options passed to the css-minimizer-webpack-plugin.
+     * A list of available options can be found at https://github.com/webpack-contrib/css-minimizer-webpack-plugin
      *
      * For example:
      *
      * ```
-     * Encore.configureOptimizeCssPlugin((options) => {
-     *     options.cssProcessor = require('cssnano');
-     *     options.cssProcessorPluginOptions = {
-     *         preset: ['default', { discardComments: { removeAll: true } }],
-     *     }
+     * Encore.configureCssMinimizerPlugin((options) => {
+     *     options.parallel = false;
      * })
      * ```
      *
-     * @param {function} optimizeCssPluginOptionsCallback
+     * @param {function} cssMinimizerPluginOptionsCallback
      * @returns {Encore}
      */
-    configureOptimizeCssPlugin(optimizeCssPluginOptionsCallback = () => {}) {
-        webpackConfig.configureOptimizeCssPlugin(optimizeCssPluginOptionsCallback);
+    configureCssMinimizerPlugin(cssMinimizerPluginOptionsCallback = () => {}) {
+        webpackConfig.configureCssMinimizerPlugin(cssMinimizerPluginOptionsCallback);
 
         return this;
     }
@@ -450,28 +447,6 @@ class Encore {
      */
     enableSourceMaps(enabled = true) {
         webpackConfig.enableSourceMaps(enabled);
-
-        return this;
-    }
-
-    /**
-     * Add a "commons" file that holds JS shared by multiple chunks/files.
-     *
-     * For example:
-     *
-     * ```
-     * Encore.createSharedEntry(
-     *     'vendor',
-     *     './src/shared.js'
-     * );
-     * ```
-     *
-     * @param {string} name The chunk name (e.g. vendor to create a vendor.js)
-     * @param {string} file A file whose code & imports should be put into the shared file.
-     * @returns {Encore}
-     */
-    createSharedEntry(name, file) {
-        webpackConfig.createSharedEntry(name, file);
 
         return this;
     }
@@ -757,7 +732,8 @@ class Encore {
      * ```
      * WebpackConfig.autoProvideVariables({
      *     $: 'jquery',
-     *     jQuery: 'jquery'
+     *     jQuery: 'jquery',
+     *     'window.jQuery': 'jquery'
      * });
      * ```
      *
@@ -931,14 +907,19 @@ class Encore {
      *              determines which files and folders should not be
      *              processed by Babel (https://webpack.js.org/configuration/module/#condition).
      *              Can be used even if you have an external Babel configuration
-     *              (a .babelrc file for instance)
+     *              (a babel.config.json file for instance)
+     *              Warning: .babelrc config files don't apply to node_modules. Use
+     *              babel.config.json instead to apply the same config to modules if
+     *              they are not excluded anymore.
      *              Cannot be used if the "includeNodeModules" option is
      *              also set.
      *      * {string[]} includeNodeModules
      *              If set that option will include the given Node modules to
      *              the files that are processed by Babel.
      *              Can be used even if you have an external Babel configuration
-     *              (a .babelrc file for instance).
+     *              (a babel.config.json file for instance).
+     *              Warning: .babelrc config files don't apply to node_modules. Use
+     *              babel.config.json instead to apply the same config to these modules.
      *              Cannot be used if the "exclude" option is also set
      *      * {'usage'|'entry'|false} useBuiltIns (default=false)
      *              Set the "useBuiltIns" option of @babel/preset-env that changes
@@ -1008,6 +989,77 @@ class Encore {
      */
     configureCssLoader(callback) {
         webpackConfig.configureCssLoader(callback);
+
+        return this;
+    }
+
+    /**
+     * If enabled, the Stimulus bridge is used to load Stimulus controllers from PHP packages.
+     *
+     * @param {string} controllerJsonPath Path to the controllers.json file.
+     * @returns {Encore}
+     */
+    enableStimulusBridge(controllerJsonPath) {
+        webpackConfig.enableStimulusBridge(controllerJsonPath);
+
+        return this;
+    }
+
+    /**
+     * Enables & configures persistent build caching.
+     *
+     * https://webpack.js.org/blog/2020-10-10-webpack-5-release/#persistent-caching
+     *
+     * ```
+     * Encore.enableBuildCache({
+     *     // object of "buildDependencies"
+     *     // https://webpack.js.org/configuration/other-options/#cachebuilddependencies
+     *     // __filename means that changes to webpack.config.js should invalidate the cache
+     *     config: [__filename],
+     * });
+     **
+     * // also configure other options the Webpack "cache" key
+     * Encore.enableBuildCache({ config: [__filename] }, (cache) => {
+     *     cache.version: `${process.env.GIT_REV}`;
+     *
+     *     cache.name: `${env.target}`
+     * });
+     * ```
+     *
+     * @param {object} buildDependencies
+     * @param {function} cacheCallback
+     * @returns {Encore}
+     */
+    enableBuildCache(buildDependencies, cacheCallback = (cache) => {}) {
+        webpackConfig.enableBuildCache(buildDependencies, cacheCallback);
+
+        return this;
+    }
+
+    /**
+     * Configure the mini-css-extract-plugin.
+     *
+     * https://github.com/webpack-contrib/mini-css-extract-plugin#configuration
+     *
+     * ```
+     * Encore.configureMiniCssExtractPlugin(
+     *     function(loaderConfig) {
+     *         // change the loader's config
+     *         // loaderConfig.reloadAll = true;
+     *     },
+     *     function(pluginConfig) {
+     *         // change the plugin's config
+     *         // pluginConfig.chunkFilename = '[id].css';
+     *     }
+     * );
+     * ```
+     *
+     * @param {function} loaderOptionsCallback
+     * @param {function} pluginOptionsCallback
+     * @returns {Encore}
+     */
+    configureMiniCssExtractPlugin(loaderOptionsCallback, pluginOptionsCallback = () => {}) {
+        webpackConfig.configureMiniCssExtractPlugin(loaderOptionsCallback, pluginOptionsCallback);
 
         return this;
     }
@@ -1279,41 +1331,25 @@ class Encore {
     }
 
     /**
-     * Call this if you wish to disable the default
-     * images loader.
-     *
-     * @returns {Encore}
-     */
-    disableImagesLoader() {
-        webpackConfig.disableImagesLoader();
-
-        return this;
-    }
-
-    /**
-     * Call this if you wish to disable the default
-     * fonts loader.
-     *
-     * @returns {Encore}
-     */
-    disableFontsLoader() {
-        webpackConfig.disableFontsLoader();
-
-        return this;
-    }
-
-    /**
      * Call this if you don't want imported CSS to be extracted
      * into a .css file. All your styles will then be injected
      * into the page by your JS code.
      *
+     * This can be useful when using the dev-server with hot
+     * module reload (so that CSS can benefit from HMR):
+     *
+     * ```
+     * // disable CSS only when using the dev-server
+     * Encore.disableCssExtraction(Encore.isDevServer())
+     * ```
+     *
      * Internally, this disables the mini-css-extract-plugin
      * and uses the style-loader instead.
-     *
+     * @param {boolean} disabled
      * @returns {Encore}
      */
-    disableCssExtraction() {
-        webpackConfig.disableCssExtraction();
+    disableCssExtraction(disabled = true) {
+        webpackConfig.disableCssExtraction(disabled);
 
         return this;
     }
@@ -1348,8 +1384,7 @@ class Encore {
      * Encore.configureFilenames({
      *     js: '[name].[contenthash].js',
      *     css: '[name].[contenthash].css',
-     *     images: 'images/[name].[hash:8].[ext]',
-     *     fonts: 'fonts/[name].[hash:8].[ext]'
+     *     assets: 'assets/[name].[hash:8][ext]',
      * });
      * ```
      *
@@ -1359,6 +1394,10 @@ class Encore {
      * If you are using Encore.enableVersioning()
      * make sure that your "js" and "css" filenames contain
      * "[contenthash]".
+     *
+     * The "assets" key is used for the output.assetModuleFilename option,
+     * which is overridden for both fonts and images. See configureImageRule()
+     * and configureFontRule() to control those filenames.
      *
      * @param {object} filenames
      * @returns {Encore}
@@ -1370,30 +1409,73 @@ class Encore {
     }
 
     /**
-     * Allows to configure the URL loader.
+     * Configure how images are loaded/processed under module.rules.
      *
-     * https://github.com/webpack-contrib/url-loader
+     * https://webpack.js.org/guides/asset-modules/
+     *
+     * The most important things can be controlled by passing
+     * an options object to the first argument:
      *
      * ```
-     * Encore.configureUrlLoader({
-     *     images: {
-     *         limit: 8192,
-     *         mimetype: 'image/png'
-     *     },
-     *     fonts: {
-     *         limit: 4096
-     *     }
+     * Encore.configureImageRule({
+     *     // common values: asset, asset/resource, asset/inline
+     *     // Using "asset" will allow smaller images to be "inlined"
+     *     // instead of copied.
+     *     // javascript/auto can be used to disable asset images (see next example)
+     *     type: 'asset/resource',
+     *
+     *     // applicable when for "type: asset": files smaller than this
+     *     // size will be "inlined" into CSS, larger files will be extracted
+     *     // into independent files
+     *     maxSize: 4 * 1024, // 4 kb
+     *
+     *     // control the output filename of images
+     *     filename: 'images/[name].[hash:8][ext]',
+     *
+     *     // you can also fully disable the image rule if you want
+     *     // to control things yourself
+     *     enabled: true,
      * });
      * ```
      *
-     * If a key (e.g. fonts) doesn't exists or contains a
-     * falsy value the file-loader will be used instead.
+     * If you need more control, you can also pass a callback to the
+     * 2nd argument. This will be passed the specific Rule object,
+     * which you can modify:
      *
-     * @param {object} urlLoaderOptions
-     * @return {Encore}
+     * https://webpack.js.org/configuration/module/#rule
+     *
+     * ```
+     * Encore.configureImageRule({}, function(rule) {
+     *     // if you set "type: 'javascript/auto'" in the first argument,
+     *     // then you can now specify a loader manually
+     *     // rule.loader = 'file-loader';
+     *     // rule.options = { filename: 'images/[name].[hash:8][ext]' }
+     * });
+     * ```
+     *
+     * @param {object} options
+     * @param {string|object|function} ruleCallback
+     * @returns {Encore}
      */
-    configureUrlLoader(urlLoaderOptions = {}) {
-        webpackConfig.configureUrlLoader(urlLoaderOptions);
+    configureImageRule(options = {}, ruleCallback = (rule) => {}) {
+        webpackConfig.configureImageRule(options, ruleCallback);
+
+        return this;
+    }
+
+    /**
+     * Configure how fonts are processed/loaded under module.rules.
+     *
+     * https://webpack.js.org/guides/asset-modules/
+     *
+     * See configureImageRule() for more details.
+     *
+     * @param {object} options
+     * @param {string|object|function} ruleCallback
+     * @returns {Encore}
+     */
+    configureFontRule(options = {}, ruleCallback = (rule) => {}) {
+        webpackConfig.configureFontRule(options, ruleCallback);
 
         return this;
     }
@@ -1515,6 +1597,29 @@ class Encore {
     }
 
     /**
+     * Use to conditionally configure or enable features only when the first parameter results to "true".
+     *
+     * ```
+     * Encore
+     *     // passing a callback
+     *     .when((Encore) => Encore.isProduction(), (Encore) => Encore.enableVersioning())
+     *     // passing a boolean
+     *     .when(process.argv.includes('--analyze'), (Encore) => Encore.addPlugin(new BundleAnalyzerPlugin()))
+     * ```
+     *
+     * @param {(function(Encore): boolean) | boolean} condition
+     * @param {function(Encore): void} callback
+     * @return {Encore}
+     */
+    when(condition, callback) {
+        if (typeof condition === 'function' && condition(this) || typeof condition === 'boolean' && condition) {
+            callback(this);
+        }
+
+        return this;
+    }
+
+    /**
      * Use this at the bottom of your webpack.config.js file:
      *
      * ```
@@ -1568,9 +1673,10 @@ class Encore {
      *
      * @param {string} environment
      * @param {object} options
+     * @param {boolean} enablePackageJsonCheck
      * @returns {Encore}
      */
-    configureRuntimeEnvironment(environment, options = {}) {
+    configureRuntimeEnvironment(environment, options = {}, enablePackageJsonCheck = true) {
         runtimeConfig = parseRuntime(
             Object.assign(
                 {},
@@ -1580,7 +1686,7 @@ class Encore {
             process.cwd()
         );
 
-        webpackConfig = new WebpackConfig(runtimeConfig, true);
+        webpackConfig = new WebpackConfig(runtimeConfig, enablePackageJsonCheck);
 
         return this;
     }
@@ -1607,38 +1713,6 @@ class Encore {
     clearRuntimeEnvironment() {
         runtimeConfig = null;
         webpackConfig = null;
-    }
-
-    /**
-     * @deprecated
-     * @return {void}
-     */
-    configureExtractTextPlugin() {
-        throw new Error('The configureExtractTextPlugin() method was removed from Encore. The underlying plugin was removed from Webpack 4.');
-    }
-
-    /**
-     * @deprecated
-     * @return {void}
-     */
-    enableCoffeeScriptLoader() {
-        throw new Error('The enableCoffeeScriptLoader() method and CoffeeScript support was removed from Encore due to support problems with Webpack 4. If you are interested in this feature, please submit a pull request!');
-    }
-
-    /**
-     * @deprecated
-     * @return {void}
-     */
-    configureUglifyJsPlugin() {
-        throw new Error('The configureUglifyJsPlugin() method was removed from Encore due to uglify-js dropping ES6+ support in its latest version. Please use configureTerserPlugin() instead.');
-    }
-
-    /**
-     * @deprecated
-     * @return {void}
-     */
-    configureLoaderOptionsPlugin() {
-        throw new Error('The configureLoaderOptionsPlugin() method was removed from Encore. The underlying plugin should not be needed anymore unless you are using outdated loaders. If that\'s the case you can still add it using addPlugin().');
     }
 }
 
